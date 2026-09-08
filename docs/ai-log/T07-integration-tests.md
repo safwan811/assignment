@@ -1,5 +1,11 @@
 # T07 — Testcontainers integration suite
 
+> **Resolved — see `docs/ai-log/T11-integration-tests-verified-green.md`.** The verification gap
+> disclosed below was closed: the suite has since been run to completion and gone fully green
+> (64 unit + 20 integration tests) via a native Docker Engine in WSL2, plus two real bugs found and
+> fixed along the way. This entry is kept as-is for the historical record of what was tried and why
+> it didn't work at the time.
+
 ## Prompt contract
 
 **Intent.** Cover lifecycle, concurrency, and degradation behaviour through the real stack: real
