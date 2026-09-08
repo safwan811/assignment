@@ -7,23 +7,20 @@ import com.example.shortener.service.AnalyticsService;
 import com.example.shortener.service.LinkService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/links")
 public class LinkController {
 
     private final LinkService links;
     private final AnalyticsService analytics;
-
-    public LinkController(LinkService links, AnalyticsService analytics) {
-        this.links = links;
-        this.analytics = analytics;
-    }
 
     @PostMapping
     public ResponseEntity<LinkResponse> create(@Valid @RequestBody CreateLinkRequest request,

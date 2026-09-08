@@ -1,8 +1,8 @@
 package com.example.shortener.ratelimit;
 
 import com.example.shortener.config.ShortenerProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -20,20 +20,14 @@ import java.time.Duration;
  *    whole write path depend on Redis availability would turn a cache outage into an outage.
  *    If this were login or payments the answer would be the opposite. See docs/RISKS.md.
  */
+@Slf4j
+@RequiredArgsConstructor
 @Component
 public class RateLimiter {
-
-    private static final Logger log = LoggerFactory.getLogger(RateLimiter.class);
 
     private final StringRedisTemplate redis;
     private final ShortenerProperties properties;
     private final Clock clock;
-
-    public RateLimiter(StringRedisTemplate redis, ShortenerProperties properties, Clock clock) {
-        this.redis = redis;
-        this.properties = properties;
-        this.clock = clock;
-    }
 
     public boolean tryAcquire(String clientId) {
         long window = clock.instant().getEpochSecond() / 60;

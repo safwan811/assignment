@@ -3,8 +3,7 @@ package com.example.shortener.web;
 import com.example.shortener.dto.ApiError;
 import com.example.shortener.exception.ApiException;
 import jakarta.validation.ConstraintViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,10 +22,9 @@ import java.util.List;
  * unexpected returns a generic message. Internal exception text can leak schema names, SQL, and
  * library internals, so it goes to the log, not to the client.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiError> handleApiException(ApiException e) {

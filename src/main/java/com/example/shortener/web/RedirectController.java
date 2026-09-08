@@ -3,6 +3,7 @@ package com.example.shortener.web;
 import com.example.shortener.analytics.ClickRecorded;
 import com.example.shortener.service.LinkService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,18 +19,13 @@ import java.time.Clock;
  * The redirect path. Everything here is on the hot path, so it does the minimum:
  * resolve (usually from cache), publish an event, return a Location header.
  */
+@RequiredArgsConstructor
 @RestController
 public class RedirectController {
 
     private final LinkService links;
     private final ApplicationEventPublisher events;
     private final Clock clock;
-
-    public RedirectController(LinkService links, ApplicationEventPublisher events, Clock clock) {
-        this.links = links;
-        this.events = events;
-        this.clock = clock;
-    }
 
     /**
      * 302, not 301. A permanent redirect would be cached by browsers and intermediaries, which

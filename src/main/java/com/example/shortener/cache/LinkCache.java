@@ -3,8 +3,7 @@ package com.example.shortener.cache;
 import com.example.shortener.config.ShortenerProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -20,10 +19,10 @@ import java.util.Optional;
  * Production hardening not implemented here: a circuit breaker so that a hard-down Redis
  * does not add its connect timeout to every request. Noted in docs/RISKS.md.
  */
+@Slf4j
 @Component
 public class LinkCache {
 
-    private static final Logger log = LoggerFactory.getLogger(LinkCache.class);
     private static final String NEGATIVE = "__NOT_FOUND__";
 
     private final StringRedisTemplate redis;

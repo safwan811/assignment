@@ -1,6 +1,11 @@
 package com.example.shortener.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.AccessLevel;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,6 +22,9 @@ import java.util.UUID;
  * fresh link (forceNew) needs to opt out of deduplication, and it does so by receiving a unique
  * dedup key. The uniqueness invariant therefore stays in the database for every code path.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @Entity
 @Table(name = "links")
 public class Link {
@@ -44,6 +52,7 @@ public class Link {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 16)
+    @Setter
     private LinkStatus status;
 
     @Column(name = "created_at", nullable = false)
@@ -52,64 +61,7 @@ public class Link {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
-    protected Link() {
-        // for JPA
-    }
-
-    public Link(UUID id, String shortCode, String originalUrl, String urlFingerprint, String dedupKey,
-                String owner, LinkStatus status, Instant createdAt, Instant expiresAt) {
-        this.id = id;
-        this.shortCode = shortCode;
-        this.originalUrl = originalUrl;
-        this.urlFingerprint = urlFingerprint;
-        this.dedupKey = dedupKey;
-        this.owner = owner;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.expiresAt = expiresAt;
-    }
-
     public boolean isExpiredAt(Instant now) {
         return expiresAt != null && !expiresAt.isAfter(now);
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public String getShortCode() {
-        return shortCode;
-    }
-
-    public String getOriginalUrl() {
-        return originalUrl;
-    }
-
-    public String getUrlFingerprint() {
-        return urlFingerprint;
-    }
-
-    public String getDedupKey() {
-        return dedupKey;
-    }
-
-    public String getOwner() {
-        return owner;
-    }
-
-    public LinkStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(LinkStatus status) {
-        this.status = status;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
     }
 }

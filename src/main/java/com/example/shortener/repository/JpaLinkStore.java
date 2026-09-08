@@ -2,20 +2,18 @@ package com.example.shortener.repository;
 
 import com.example.shortener.domain.Link;
 import com.example.shortener.service.LinkStore;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+@RequiredArgsConstructor
 @Component
 public class JpaLinkStore implements LinkStore {
 
     private final LinkRepository delegate;
-
-    public JpaLinkStore(LinkRepository delegate) {
-        this.delegate = delegate;
-    }
 
     @Override
     public Optional<Link> findByShortCode(String shortCode) {

@@ -13,6 +13,7 @@ import com.example.shortener.exception.GoneException;
 import com.example.shortener.exception.NotFoundException;
 import com.example.shortener.exception.ServiceUnavailableException;
 import com.github.benmanes.caffeine.cache.Cache;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ import java.util.regex.Pattern;
  * uniqueness is enforced by database constraints, never by JVM locks. Every "check then insert"
  * is expressed as a conditional insert plus a re-read of the winner.
  */
+@RequiredArgsConstructor
 @Service
 public class LinkService {
 
@@ -42,24 +44,6 @@ public class LinkService {
     private final Cache<String, Optional<CachedLink>> l1;
     private final ShortenerProperties properties;
     private final Clock clock;
-
-    public LinkService(LinkStore repository,
-                       UrlNormalizer normalizer,
-                       UrlValidator validator,
-                       ShortCodeGenerator generator,
-                       LinkCache l2,
-                       Cache<String, Optional<CachedLink>> l1,
-                       ShortenerProperties properties,
-                       Clock clock) {
-        this.repository = repository;
-        this.normalizer = normalizer;
-        this.validator = validator;
-        this.generator = generator;
-        this.l2 = l2;
-        this.l1 = l1;
-        this.properties = properties;
-        this.clock = clock;
-    }
 
     // ------------------------------------------------------------------ create
 

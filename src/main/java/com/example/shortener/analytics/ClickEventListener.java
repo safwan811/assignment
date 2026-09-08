@@ -2,8 +2,8 @@ package com.example.shortener.analytics;
 
 import com.example.shortener.domain.ClickEvent;
 import com.example.shortener.repository.ClickEventRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -21,16 +21,12 @@ import java.util.UUID;
  * consumer, so that events survive a pod restart. That is a deliberate scope cut, not an
  * oversight; see docs/ENGINEERING-SUMMARY.md.
  */
+@Slf4j
+@RequiredArgsConstructor
 @Component
 public class ClickEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(ClickEventListener.class);
-
     private final ClickEventRepository repository;
-
-    public ClickEventListener(ClickEventRepository repository) {
-        this.repository = repository;
-    }
 
     @Async("analyticsExecutor")
     @EventListener

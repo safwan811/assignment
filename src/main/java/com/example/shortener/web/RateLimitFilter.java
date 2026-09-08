@@ -3,6 +3,7 @@ package com.example.shortener.web;
 import com.example.shortener.ratelimit.RateLimiter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
+import lombok.RequiredArgsConstructor;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,17 +27,13 @@ import com.example.shortener.dto.ApiError;
  * penalise a legitimately popular link. Abuse of the redirect path is handled by disabling
  * the link, not by throttling its visitors.
  */
+@RequiredArgsConstructor
 @Component
 @Order(3)
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimiter rateLimiter;
     private final ObjectMapper mapper;
-
-    public RateLimitFilter(RateLimiter rateLimiter, ObjectMapper mapper) {
-        this.rateLimiter = rateLimiter;
-        this.mapper = mapper;
-    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {

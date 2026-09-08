@@ -2,6 +2,7 @@ package com.example.shortener.service;
 
 import com.example.shortener.config.ShortenerProperties;
 import com.example.shortener.exception.BadRequestException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
@@ -18,16 +19,13 @@ import java.util.Set;
  * anyway. The durable control is that this service never fetches the target URL itself; see
  * docs/RISKS.md.
  */
+@RequiredArgsConstructor
 @Component
 public class UrlValidator {
 
     private static final Set<String> LOOPBACK_NAMES = Set.of("localhost", "localhost.localdomain", "ip6-localhost");
 
     private final ShortenerProperties properties;
-
-    public UrlValidator(ShortenerProperties properties) {
-        this.properties = properties;
-    }
 
     public void validate(String normalizedUrl) {
         if (normalizedUrl.length() > properties.maxUrlLength()) {

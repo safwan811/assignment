@@ -2,6 +2,7 @@ package com.example.shortener.service;
 
 import com.example.shortener.dto.StatsResponse;
 import com.example.shortener.repository.ClickEventRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@RequiredArgsConstructor
 @Service
 public class AnalyticsService {
 
@@ -21,12 +23,6 @@ public class AnalyticsService {
     private final ClickEventRepository clicks;
     private final LinkService links;
     private final Clock clock;
-
-    public AnalyticsService(ClickEventRepository clicks, LinkService links, Clock clock) {
-        this.clicks = clicks;
-        this.links = links;
-        this.clock = clock;
-    }
 
     /**
      * Existence is checked first so that stats for an unknown code return 404 rather than
