@@ -18,10 +18,14 @@ fix the README — a broken example in the first thing a reviewer reads is expen
 mvn verify
 ```
 
-Requires a Docker daemon. **The unit tests (63) have been run and pass. The integration tests
-compile but have never been executed.** If any fail, fix them before submitting — `docs/TESTING.md`
-claims they pass, and a claim without evidence is the exact failure mode called out in the review
-of the sample repository.
+Requires a Docker daemon. **Done: 64 unit tests + 20 integration tests, all green** — see
+`docs/ai-log/T11-integration-tests-verified-green.md` for what that took (a Docker Desktop Windows
+integration issue meant this needed a native Docker Engine in WSL2, plus two real bugs found along
+the way: a Mockito JVM self-attach failure, fixed properly rather than papered over with JVM flags,
+and a test-isolation bug in `RateLimitIT` that could only have been found by actually running the
+full suite to completion). If you run this on a different machine and it fails, don't assume the
+suite is broken — check whether your Docker setup can actually reach a real daemon first (T07 has
+the diagnostic steps).
 
 ## 3. Read the AI logs and make them yours
 
@@ -46,37 +50,24 @@ The ones most likely to be probed:
 because you have reviewed that area, or leave them blank and add one line to the engineering
 summary saying this was a solo prototype with no second reviewer. Do not invent a reviewer.
 
+**Currently unsigned, both need a decision before submitting:**
+- `T08-jackson-objectmapper-fix.md` — cache read/write behaviour
+- `T10-404-not-500-and-postman-hardening.md` — input handling on every unrouted request
+
 ## 5. Commit in stages, not one commit
 
-The sample repository had a single commit called "Final Commit", which shows no process. Suggested
-sequence, matching the scenario documents:
-
-```bash
-git init
-git add docs/REQUIREMENTS.md docs/PLAN.md CLAUDE.md
-git commit -m "docs: requirement interpretation, task decomposition, working agreement"
-
-git add pom.xml Dockerfile docker-compose.yml .gitignore .github
-git commit -m "build: Spring Boot 3.2 / Java 17 skeleton with Postgres, Redis, Flyway"
-
-git add src/main/.../domain src/main/.../repository src/main/resources/db/migration/V1*
-git add docs/adr/ADR-001* docs/adr/ADR-002*
-git commit -m "feat: links schema and short code generation (ADR-001, ADR-002)"
-
-# ... create endpoint, redirect + cache, then:
-git commit -m "fix: forceNew could never work against the unique index; introduce dedup_key"
-
-# ... analytics (brownfield), reliability (ambiguous), then docs
-```
-
-The `dedup_key` commit is worth isolating so the defect and its fix are visible in the history.
+**Done.** `COMMIT-GUIDE.md` had the staged sequence and it was followed — `git log --oneline` shows
+18 commits (the original 12-commit skeleton plus fixes/refactors found and made afterward, each
+with its own ai-log entry), not one squashed "Final Commit". The `dedup_key` defect and its fix are
+two separate, isolated commits so the history shows the bug being caught, not just the end state.
 
 ## 6. Final sweep
 
-- [ ] Every `curl` in the README produces the documented output
-- [ ] `mvn test` passes
-- [ ] `mvn verify` passes
-- [ ] No claim in `docs/` refers to a test that does not exist
-- [ ] No latency or throughput number appears anywhere (none was measured)
-- [ ] Sign-off lines are either filled honestly or explained
-- [ ] `git log` shows staged progress, not one commit
+- [x] Every `curl` in the README produces the documented output (walked through it live via
+      `docker compose up --build`)
+- [x] `mvn test` passes (64/64)
+- [x] `mvn verify` passes (64 unit + 20 integration, 0 failures — see T11)
+- [x] No claim in `docs/` refers to a test that does not exist
+- [x] No latency or throughput number appears anywhere (none was measured)
+- [ ] Sign-off lines are either filled honestly or explained — **two still open, see §4**
+- [x] `git log` shows staged progress, not one commit
