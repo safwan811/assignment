@@ -23,14 +23,14 @@ public class JpaLinkStore implements LinkStore {
     }
 
     @Override
-    public Optional<Link> findByFingerprintAndOwner(String fingerprint, String owner) {
-        return delegate.findByUrlFingerprintAndOwner(fingerprint, owner);
+    public Optional<Link> findByDedupKey(String dedupKey) {
+        return delegate.findByDedupKey(dedupKey);
     }
 
     @Override
     public int insertIfAbsent(UUID id, String shortCode, String originalUrl, String fingerprint,
-                              String owner, Instant createdAt, Instant expiresAt) {
-        return delegate.insertIfAbsent(id, shortCode, originalUrl, fingerprint, owner, createdAt, expiresAt);
+                              String dedupKey, String owner, Instant createdAt, Instant expiresAt) {
+        return delegate.insertIfAbsent(id, shortCode, originalUrl, fingerprint, dedupKey, owner, createdAt, expiresAt);
     }
 
     @Override

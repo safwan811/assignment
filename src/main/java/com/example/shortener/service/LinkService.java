@@ -73,23 +73,32 @@ public class LinkService {
 
         // Deduplication is scoped to the owner: two tenants shortening the same URL must not be
         // able to observe each other's links or each other's analytics. A caller that explicitly
-        // wants a fresh link opts out of this pre-check by setting forceNew.
+        // wants a fresh link opts out by getting a dedup key that can never collide.
         boolean deduplicate = !request.isForceNew() && !request.hasAlias();
+        String dedupKey = deduplicate
+                ? owner + "|" + fingerprint
+                : "unique|" + UUID.randomUUID();
+
         if (deduplicate) {
-            Optional<Link> existing = repository.findByFingerprintAndOwner(fingerprint, owner);
+            Optional<Link> existing = repository.findByDedupKey(dedupKey);
             if (existing.isPresent() && existing.get().getStatus() == LinkStatus.ACTIVE) {
                 return toResponse(existing.get());
+            }
+            if (existing.isPresent()) {
+                // The previous link for this URL was disabled. Reusing it would silently
+                // re-enable something an operator switched off, so mint a fresh one instead.
+                dedupKey = "unique|" + UUID.randomUUID();
             }
         }
 
         if (request.hasAlias()) {
             validateAlias(request.customAlias());
-            return createWithCode(request.customAlias(), normalized, fingerprint, owner, expiresAt, true);
+            return createWithCode(request.customAlias(), normalized, fingerprint, dedupKey, owner, expiresAt, true);
         }
 
         for (int attempt = 0; attempt < properties.maxCollisionRetries(); attempt++) {
             try {
-                return createWithCode(generator.generate(), normalized, fingerprint, owner, expiresAt, false);
+                return createWithCode(generator.generate(), normalized, fingerprint, dedupKey, owner, expiresAt, false);
             } catch (CodeTakenException e) {
                 // A generated code collided. Try another candidate; this is expected and rare.
             }
@@ -99,11 +108,13 @@ public class LinkService {
     }
 
     private LinkResponse createWithCode(String code, String normalizedUrl, String fingerprint,
-                                        String owner, Instant expiresAt, boolean aliasRequested) {
+                                        String dedupKey, String owner, Instant expiresAt,
+                                        boolean aliasRequested) {
         UUID id = UUID.randomUUID();
         Instant createdAt = clock.instant();
 
-        int inserted = repository.insertIfAbsent(id, code, normalizedUrl, fingerprint, owner, createdAt, expiresAt);
+        int inserted = repository.insertIfAbsent(
+                id, code, normalizedUrl, fingerprint, dedupKey, owner, createdAt, expiresAt);
         if (inserted == 1) {
             Link link = repository.findByShortCode(code).orElseThrow();
             cache(link);
@@ -115,11 +126,11 @@ public class LinkService {
         if (aliasRequested && byCode.isPresent()) {
             throw new ConflictException("customAlias is already in use");
         }
-        Optional<Link> byFingerprint = repository.findByFingerprintAndOwner(fingerprint, owner);
-        if (byFingerprint.isPresent()) {
+        Optional<Link> byDedupKey = repository.findByDedupKey(dedupKey);
+        if (byDedupKey.isPresent()) {
             // A concurrent request created the same URL for the same owner first. Its result is
             // just as valid as ours, so return it instead of failing the caller.
-            return toResponse(byFingerprint.get());
+            return toResponse(byDedupKey.get());
         }
         throw new CodeTakenException();
     }

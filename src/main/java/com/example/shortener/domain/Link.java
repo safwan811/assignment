@@ -11,7 +11,11 @@ import java.util.UUID;
  * Invariants enforced at the database level, not in application code, because multiple
  * instances do not share memory:
  *  - short_code is unique
- *  - (url_fingerprint, owner) is unique, which is what makes creation idempotent per owner
+ *  - dedup_key is unique, which is what makes creation idempotent per owner
+ *
+ * dedup_key rather than (url_fingerprint, owner) directly: a caller that explicitly asks for a
+ * fresh link (forceNew) needs to opt out of deduplication, and it does so by receiving a unique
+ * dedup key. The uniqueness invariant therefore stays in the database for every code path.
  */
 @Entity
 @Table(name = "links")
@@ -31,6 +35,10 @@ public class Link {
     @Column(name = "url_fingerprint", nullable = false, length = 64)
     private String urlFingerprint;
 
+    /** Uniqueness key for deduplication. See the class comment. */
+    @Column(name = "dedup_key", nullable = false, unique = true, length = 200)
+    private String dedupKey;
+
     @Column(name = "owner", nullable = false, length = 128)
     private String owner;
 
@@ -48,12 +56,13 @@ public class Link {
         // for JPA
     }
 
-    public Link(UUID id, String shortCode, String originalUrl, String urlFingerprint,
+    public Link(UUID id, String shortCode, String originalUrl, String urlFingerprint, String dedupKey,
                 String owner, LinkStatus status, Instant createdAt, Instant expiresAt) {
         this.id = id;
         this.shortCode = shortCode;
         this.originalUrl = originalUrl;
         this.urlFingerprint = urlFingerprint;
+        this.dedupKey = dedupKey;
         this.owner = owner;
         this.status = status;
         this.createdAt = createdAt;
@@ -78,6 +87,10 @@ public class Link {
 
     public String getUrlFingerprint() {
         return urlFingerprint;
+    }
+
+    public String getDedupKey() {
+        return dedupKey;
     }
 
     public String getOwner() {

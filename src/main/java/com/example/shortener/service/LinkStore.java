@@ -17,11 +17,11 @@ public interface LinkStore {
 
     Optional<Link> findByShortCode(String shortCode);
 
-    Optional<Link> findByFingerprintAndOwner(String fingerprint, String owner);
+    Optional<Link> findByDedupKey(String dedupKey);
 
     /** @return 1 if the row was inserted, 0 if a uniqueness conflict meant it was not. */
     int insertIfAbsent(UUID id, String shortCode, String originalUrl, String fingerprint,
-                       String owner, Instant createdAt, Instant expiresAt);
+                       String dedupKey, String owner, Instant createdAt, Instant expiresAt);
 
     Link save(Link link);
 }

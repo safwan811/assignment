@@ -14,7 +14,7 @@ public interface LinkRepository extends JpaRepository<Link, UUID> {
 
     Optional<Link> findByShortCode(String shortCode);
 
-    Optional<Link> findByUrlFingerprintAndOwner(String urlFingerprint, String owner);
+    Optional<Link> findByDedupKey(String dedupKey);
 
     /**
      * Atomic conditional insert.
@@ -25,14 +25,15 @@ public interface LinkRepository extends JpaRepository<Link, UUID> {
      */
     @Modifying
     @Query(value = """
-            INSERT INTO links (id, short_code, original_url, url_fingerprint, owner, status, created_at, expires_at)
-            VALUES (:id, :shortCode, :originalUrl, :fingerprint, :owner, 'ACTIVE', :createdAt, :expiresAt)
+            INSERT INTO links (id, short_code, original_url, url_fingerprint, dedup_key, owner, status, created_at, expires_at)
+            VALUES (:id, :shortCode, :originalUrl, :fingerprint, :dedupKey, :owner, 'ACTIVE', :createdAt, :expiresAt)
             ON CONFLICT DO NOTHING
             """, nativeQuery = true)
     int insertIfAbsent(@Param("id") UUID id,
                        @Param("shortCode") String shortCode,
                        @Param("originalUrl") String originalUrl,
                        @Param("fingerprint") String fingerprint,
+                       @Param("dedupKey") String dedupKey,
                        @Param("owner") String owner,
                        @Param("createdAt") Instant createdAt,
                        @Param("expiresAt") Instant expiresAt);

@@ -10,7 +10,7 @@ import java.util.UUID;
 
 /**
  * Hand-written fake with the same uniqueness semantics as the database:
- * insertIfAbsent returns 0 if either the short code OR the (fingerprint, owner) pair is taken.
+ * insertIfAbsent returns 0 if either the short code OR the dedup key is taken.
  *
  * Written by hand rather than mocked so the retry and race-resolution logic in LinkService is
  * exercised against realistic behaviour instead of against whatever a mock was told to return.
@@ -32,25 +32,25 @@ class InMemoryLinkStore implements LinkStore {
     }
 
     @Override
-    public Optional<Link> findByFingerprintAndOwner(String fingerprint, String owner) {
+    public Optional<Link> findByDedupKey(String dedupKey) {
         return byCode.values().stream()
-                .filter(l -> l.getUrlFingerprint().equals(fingerprint) && l.getOwner().equals(owner))
+                .filter(l -> l.getDedupKey().equals(dedupKey))
                 .findFirst();
     }
 
     @Override
     public int insertIfAbsent(UUID id, String shortCode, String originalUrl, String fingerprint,
-                              String owner, Instant createdAt, Instant expiresAt) {
+                              String dedupKey, String owner, Instant createdAt, Instant expiresAt) {
         if (poisonedCodes.remove(shortCode)) {
             return 0;
         }
         if (byCode.containsKey(shortCode)) {
             return 0;
         }
-        if (findByFingerprintAndOwner(fingerprint, owner).isPresent()) {
+        if (findByDedupKey(dedupKey).isPresent()) {
             return 0;
         }
-        byCode.put(shortCode, new Link(id, shortCode, originalUrl, fingerprint, owner,
+        byCode.put(shortCode, new Link(id, shortCode, originalUrl, fingerprint, dedupKey, owner,
                 com.example.shortener.domain.LinkStatus.ACTIVE, createdAt, expiresAt));
         return 1;
     }
