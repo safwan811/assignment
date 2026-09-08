@@ -1,8 +1,6 @@
 package com.example.shortener.config;
 
 import com.example.shortener.cache.CachedLink;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.context.annotation.Bean;
@@ -35,10 +33,5 @@ public class AppConfig {
                 .expireAfterWrite(properties.l1Ttl())
                 .recordStats()
                 .build();
-    }
-
-    @Bean
-    public ObjectMapper redisObjectMapper() {
-        return new ObjectMapper().registerModule(new JavaTimeModule());
     }
 }

@@ -2,6 +2,7 @@ package com.example.shortener.cache;
 
 import com.example.shortener.config.ShortenerProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,9 +30,16 @@ public class LinkCache {
     private final ObjectMapper mapper;
     private final ShortenerProperties properties;
 
-    public LinkCache(StringRedisTemplate redis, ObjectMapper redisObjectMapper, ShortenerProperties properties) {
+    /**
+     * Builds its own ObjectMapper rather than taking one as a Spring bean: exposing a bare
+     * {@code @Bean ObjectMapper} makes Spring Boot's auto-configuration back off from creating
+     * its own (it only creates one if none exists), so this cache's serialisation settings would
+     * silently leak into every JSON HTTP response, including overriding
+     * spring.jackson.serialization.write-dates-as-timestamps.
+     */
+    public LinkCache(StringRedisTemplate redis, ShortenerProperties properties) {
         this.redis = redis;
-        this.mapper = redisObjectMapper;
+        this.mapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.properties = properties;
     }
 

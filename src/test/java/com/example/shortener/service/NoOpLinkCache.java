@@ -13,7 +13,7 @@ import java.util.Optional;
 class NoOpLinkCache extends LinkCache {
 
     NoOpLinkCache() {
-        super(null, null, null);
+        super(null, null);
     }
 
     @Override
