@@ -1,0 +1,388 @@
+{
+  "info": {
+    "name": "URL Shortener",
+    "description": "API surface for the url-shortener service: link creation/lookup/stats/disable (/api/v1/links), the redirect path, and actuator health checks.\n\nSee CLAUDE.md / docs/adr in the repo for the decisions behind response shapes (302 not 301, coarse click attributes, no PII in click_events, etc).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "shortCode", "value": "" },
+    { "key": "dedupTestUrl", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Links",
+      "item": [
+        {
+          "name": "Create Short Link",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// A fresh URL per collection run, so dedup/forceNew checks below never collide",
+                  "// with a link disabled by a previous run (dedup permanently mints a new key for",
+                  "// a given owner+URL once that URL's link has ever been disabled once).",
+                  "pm.collectionVariables.set('dedupTestUrl', 'https://example.com/postman-dedup-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('shortCode', body.shortCode);",
+                  "    pm.environment.set('shortCode', body.shortCode);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Location header present', () => pm.response.headers.has('Location'));",
+                  "pm.test('createdAt is an ISO-8601 string, not epoch seconds', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"{{dedupTestUrl}}\",\n  \"customAlias\": null,\n  \"expiresAt\": null,\n  \"forceNew\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links"]
+            },
+            "description": "Creates a short link. `customAlias` and `expiresAt` are optional; omit or set null for defaults. `forceNew: true` bypasses dedup and mints a fresh code for the same URL (ADR-001: random Base62 codes)."
+          }
+        },
+        {
+          "name": "Create Short Link (custom alias + expiry)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/promo\",\n  \"customAlias\": \"my-promo\",\n  \"expiresAt\": \"2026-12-31T23:59:59Z\",\n  \"forceNew\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links"]
+            },
+            "description": "Example showing an explicit customAlias and an absolute UTC expiresAt. There is no implicit expiry default (see CreateLinkRequest javadoc)."
+          }
+        },
+        {
+          "name": "Create Short Link (duplicate - dedup check)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 (existing link returned, not an error)', () => pm.response.to.have.status(201));",
+                  "pm.test('Same URL from the same caller reuses the existing shortCode', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.shortCode).to.eql(pm.collectionVariables.get('shortCode'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"{{dedupTestUrl}}\",\n  \"customAlias\": null,\n  \"expiresAt\": null,\n  \"forceNew\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links"]
+            },
+            "description": "Run 'Create Short Link' first, then this with the identical body. Creation is idempotent per caller: the same normalised URL returns the same shortCode instead of minting a new one (LinkService.create's dedup-key lookup)."
+          }
+        },
+        {
+          "name": "Create Short Link (forceNew - bypasses dedup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('forceNew mints a distinct code for the same URL', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.shortCode).to.not.eql(pm.collectionVariables.get('shortCode'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"{{dedupTestUrl}}\",\n  \"customAlias\": null,\n  \"expiresAt\": null,\n  \"forceNew\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links"]
+            },
+            "description": "Run 'Create Short Link' first. This is the regression check for the defect documented in docs/ai-log/T05-create-endpoint.md: a unique index on (url_fingerprint, owner) once made forceNew silently return the original code instead of a fresh one. The fix introduced dedup_key; this request/test pins that fix."
+          }
+        },
+        {
+          "name": "Get Link",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links/{{shortCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links", "{{shortCode}}"]
+            },
+            "description": "Fetches link metadata by short code. Run \"Create Short Link\" first to populate {{shortCode}}."
+          }
+        },
+        {
+          "name": "Get Link Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links/{{shortCode}}/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links", "{{shortCode}}", "stats"]
+            },
+            "description": "Coarse click attributes only (ADR-003): totalClicks, clicksByDay, topReferrers (host only, no full URL), and byUserAgentFamily (bucketed, not raw UA strings)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Redirect",
+      "item": [
+        {
+          "name": "Follow Short Link",
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{shortCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{shortCode}}"]
+            },
+            "description": "Hits the hot redirect path directly. Redirect following is disabled for this request (protocolProfileBehavior.followRedirects: false) specifically so the test can inspect the raw 302 + Location header, rather than whatever example.com's own destination page happens to return. Expect 302 Found (ADR-004), not 301."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 302', () => pm.response.to.have.status(302));",
+                  "pm.test('Location header points at the original destination', () => {",
+                  "    pm.expect(pm.response.headers.get('Location')).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Actuator",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "info"]
+            }
+          }
+        },
+        {
+          "name": "Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error examples",
+      "item": [
+        {
+          "name": "Create Link - validation error (blank url)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links"]
+            },
+            "description": "Expect 400 with ApiError { code: INVALID_REQUEST, message, details[], correlationId, timestamp } per GlobalExceptionHandler."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Body has ApiError shape', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('code', 'INVALID_REQUEST');",
+                  "    pm.expect(body).to.have.property('details');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Link - unknown code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links/doesnotexist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links", "doesnotexist"]
+            },
+            "description": "Expect 404 ApiError for a code that was never minted."
+          }
+        },
+        {
+          "name": "Create Link - reserved alias",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com\",\n  \"customAlias\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links"]
+            },
+            "description": "shortener.reserved-aliases blocks codes like admin/api/actuator/health/etc (application.yml). Expect a 4xx ApiError."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Disable Link",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/links/{{shortCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "links", "{{shortCode}}"]
+            },
+            "description": "Disables (soft-deletes) a link. Returns 204 No Content.\n\nDeliberately last in the whole collection, not inside 'Links': a full sequential run executes folders top to bottom, and 'Redirect / Follow Short Link' needs the link still ACTIVE. Disabling it earlier would make that request legitimately 410, breaking the demo for the wrong reason."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm disabled link is 410",
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{shortCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{shortCode}}"]
+            },
+            "description": "Run after 'Disable Link'. A disabled link is 410 Gone forever, not reassignable (LinkService.disable)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 410', () => pm.response.to.have.status(410));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
