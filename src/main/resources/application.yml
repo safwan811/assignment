@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: url-shortener
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/shortener}
+    username: ${DB_USER:shortener}
+    password: ${DB_PASSWORD:shortener}
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 2000
+  jpa:
+    open-in-view: false          # avoids holding a DB connection for the whole request
+    hibernate:
+      ddl-auto: validate         # Flyway owns the schema; Hibernate only checks it matches
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 500ms             # bounded: Redis is a cache, it must never stall a redirect
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never       # errors are shaped by GlobalExceptionHandler, not the default page
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+shortener:
+  base-url: ${SHORT_BASE_URL:http://localhost:8080}
+  code-length: 7                 # 62^7 ~= 3.5e12; collisions negligible at prototype scale
+  max-collision-retries: 5
+  max-url-length: 2048
+  l1-ttl: 30s                    # bounds how long a disabled link can still redirect on a pod
+  redis-ttl: 30m
+  negative-cache-ttl: 20s        # short, so a newly created code is not shadowed by a miss
+  max-expiry: 1825d              # 5 years
+  create-requests-per-minute: 60
+  block-private-addresses: true
+  reserved-aliases:
+    - api
+    - actuator
+    - health
+    - metrics
+    - admin
+    - login
+    - static
+    - assets
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+  level:
+    com.example.shortener: INFO
