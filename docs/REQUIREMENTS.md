@@ -60,7 +60,7 @@ Build a small but production-shaped URL shortener that demonstrates **engineer-l
 
 ## 5. Acceptance criteria (definition of done)
 - `docker compose up --build` → service runs, every `curl` example in the README works end to end.
-- Unit + integration tests pass (`./mvnw verify`), coverage on core paths.
+- Unit + integration tests pass (`mvn verify`), coverage on core paths.
 - All three scenarios documented with decomposition → execution → validation.
 - AI usage log complete: every task shows generated / edited / rejected with rationale.
 - Architecture overview, testing approach, risks/trade-offs, limitations written.
