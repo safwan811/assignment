@@ -11,9 +11,10 @@ A URL shortener: create with per-caller deduplication, custom aliases and option
 redirect through a two-tier cache; asynchronous click analytics; rate limiting; soft delete. Java
 17, Spring Boot 3.2, PostgreSQL, Redis, all containerised.
 
-**Verified:** 63 unit tests pass against JDK 17. **Not verified by me:** the integration suite
-compiles but requires a Docker daemon — run `mvn verify` before relying on it. No load test was
-run, so no latency figure is claimed anywhere in these documents.
+**Verified:** `mvn verify` — 64 unit tests and 20 integration tests, all green (see
+`docs/ai-log/T11-integration-tests-verified-green.md` for the environment setup and two real bugs
+found getting there). No load test was run, so no latency figure is claimed anywhere in these
+documents.
 
 ## 2. Plan and rationale
 

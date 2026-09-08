@@ -10,8 +10,10 @@ mvn verify    # unit + integration, requires a Docker daemon
 The Surefire/Failsafe split exists so the fast loop stays fast. A suite that needs Docker to run at
 all gets run less often, and a test suite that is run less often stops catching things.
 
-**Current state:** 63 unit tests pass. The integration tests compile and are written against real
-containers; run `mvn verify` on a machine with Docker to execute them.
+**Current state:** `mvn verify` is fully green — 64 unit tests and 20 integration tests against
+real Postgres/Redis containers. See `docs/ai-log/T11-integration-tests-verified-green.md` for the
+environment notes (this needed a native Docker Engine, not Docker Desktop's Windows integration
+layer, on the machine this was verified on) and two real test-isolation bugs found in the process.
 
 ## What each tier is for
 
